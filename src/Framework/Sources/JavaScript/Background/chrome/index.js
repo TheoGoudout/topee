@@ -5,9 +5,9 @@ module.exports = {
 	extension: require('./extension.js'),
 	i18n: require('./i18n.js'),
 	runtime: require('./runtime.js'),
+    storage: require('./storage.js'),
 	tabs: require('./tabs.js'),
 	webRequest: require('./web-request.js'),
 	webNavigation: require('./web-navigation.js'),
     windows: require('./windows.js'),
-    storage: require('./storage.js'),
 };

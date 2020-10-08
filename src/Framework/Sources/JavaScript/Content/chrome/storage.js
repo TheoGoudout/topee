@@ -1,11 +1,9 @@
-
 'use strict';
 
 const background = require('../background-bridge');
-const EventEmitter = require('events');
-const changeEmitter = new EventEmitter();
+const eventEmitter = require('../event-bus.js');
 
-function storage(storageArea) {
+function generateStorage(storageArea) {
     return {
         /**
          * @param keys (optional)
@@ -16,10 +14,10 @@ function storage(storageArea) {
             background.dispatchRequest(
                 {
                     eventName: 'storage.get',
-                    message: {
-                        area: storageArea,
-                        keys: cb ? keys : undefined
-                    }
+                    message: [
+                        storageArea,
+                        keys,
+                    ],
                 },
                 (resp) => callback(resp)
             );
@@ -28,10 +26,10 @@ function storage(storageArea) {
             background.dispatchRequest(
                 {
                     eventName: 'storage.set',
-                    message: {
-                        area: storageArea,
-                        items
-                    }
+                    message: [
+                        storageArea,
+                        items,
+                    ],
                 },
                 () => callback()
             );
@@ -40,10 +38,10 @@ function storage(storageArea) {
             background.dispatchRequest(
                 {
                     eventName: 'storage.remove',
-                    message: {
-                        area: storageArea,
-                        keys
-                    }
+                    message: [
+                        storageArea,
+                        keys,
+                    ],
                 },
                 () => callback()
             );
@@ -52,9 +50,9 @@ function storage(storageArea) {
             background.dispatchRequest(
                 {
                     eventName: 'storage.clear',
-                    message: {
-                        area: storageArea,
-                    }
+                    message: [
+                        storageArea,
+                    ],
                 },
                 () => callback()
             );
@@ -62,28 +60,25 @@ function storage(storageArea) {
     };
 }
 
-var runtimeListenerAdded = false;
-
-module.exports = {
-    local: storage('local'),
-    sync: storage('sync'),
+// https://developer.chrome.com/extensions/extension
+var storage = {
+    // Properties
+    local: generateStorage('local'),
+    sync: generateStorage('sync'),
     managed: {
-        get: storage('managed').get
+        get: generateStorage('managed').get
     },
+    
+    // Events
     onChanged: {
         addListener(callback) {
-            if (!runtimeListenerAdded) {
-                chrome.runtime.onMessage.addListener(function (message) {
-                    if (message.type === '__topee_storage') {
-                        changeEmitter.emit('storage', message.changes, message.area);
-                    }
-                });
-                runtimeListenerAdded = true;
-            }
-            changeEmitter.on('storage', callback);
-        },
-        removeListener(callback) {
-            changeEmitter.off('storage', callback);
+            eventEmitter.on('storage.onChanged', callback);
         }
     }
 };
+
+eventEmitter.on('storage.changed', function(message) {
+    eventEmitter.emit('storage.onChanged', ...message.payload);
+});
+
+module.exports = storage;

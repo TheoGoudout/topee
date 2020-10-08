@@ -3,47 +3,47 @@
 var eventEmitter = require('../event-bus.js');
 var urlMatcher = require('../url-matcher.js');
 
-var tabs = {};
-
 // Internal state management
 var browserTabs = { /* id, url */ };
 var lastFocusedTabId = null;
 
-function registerTab({tabId, frameId, hasFocus, isVisible, url, status}) {
-    if (frameId !== 0) { return; } // TODO: Change to assert? Only top window should send these messages
+// Created/Alive related
+function registerTab() {
+    // TODO: Change to assert? Only top window should send these messages
+    if (this.frameId !== 0) { return; }
 
     var emitActivated = false;
-    if (hasFocus) {
-        if (lastFocusedTabId && lastFocusedTabId !== tabId) {
+    if (this.hasFocus) {
+        if (lastFocusedTabId && lastFocusedTabId !== this.tabId) {
             browserTabs[lastFocusedTabId].hasFocus = false;
         }
 
-        lastFocusedTabId = tabId;
+        lastFocusedTabId = this.tabId;
         emitActivated = true;
     }
 
     var tab = {
-        id: tabId,
-        url,
-        hasFocus,
-        isVisible,
-        status
+        id: this.tabId,
+        url: this.url,
+        hasFocus: this.hasFocus,
+        isVisible: this.isVisible,
+        status: this.status,
     };
 
-    if (browserTabs[tabId]) {
-        var changeInfo = buildTabChangeInfo(browserTabs[tabId], tab);
+    if (browserTabs[this.tabId]) {
+        var changeInfo = buildTabChangeInfo(browserTabs[this.tabId], tab);
         if (Object.keys(changeInfo).length) {
-            tabs.onUpdated._emit(tabId, changeInfo, tab);
+            tabs.onUpdated._emit(this.tabId, changeInfo, tab);
         }
     } else {
         tabs.onCreated._emit(tab);
-        tabs.onUpdated._emit(tabId, {status: "loading"}, tab);
+        tabs.onUpdated._emit(this.tabId, {status: "loading"}, tab);
     }
 
-    browserTabs[tabId] = tab;
+    browserTabs[this.tabId] = tab;
 
     if (emitActivated) {
-        tabs.onActivated._emit({ tabId: tabId });
+        tabs.onActivated._emit({ tabId: this.tabId });
     }
 }
 
@@ -63,57 +63,26 @@ function buildTabChangeInfo(before, after) {
     return changeInfo;
 }
 
-eventEmitter.addListener('hello', registerTab);
-eventEmitter.addListener('alive', registerTab);
-
-eventEmitter.addListener('bye', function (payload) {
-    if (typeof payload.frameId !== 'undefined' && payload.frameId !== 0) { return; }
-    if (!browserTabs[payload.tabId]) {
-        console.log('closing an undetected tab', payload.tabId);
+// Remove related
+function unregisterTab() {
+    if (typeof this.frameId !== 'undefined' && this.frameId !== 0) { return; }
+    if (!browserTabs[this.tabId]) {
+        console.log('closing an undetected tab', this.tabId);
         return;
     }
-    browserTabs[payload.tabId]._deleted = true;
+    browserTabs[this.tabId]._deleted = true;
     setTimeout(function () {
-        if (browserTabs[payload.tabId]._deleted) {
-            delete browserTabs[payload.tabId];
+        if (browserTabs[this.tabId]._deleted) {
+            delete browserTabs[this.tabId];
 
-            if (lastFocusedTabId === payload.tabId) {
+            if (lastFocusedTabId === this.tabId) {
                 lastFocusedTabId = null;
             }
         }
-    }, 700);  // content.js revokes bye if still alive 500ms later. adding 200 ms margin
-});
+    }.bind(this), 700);  // content.js revokes bye if still alive 500ms later. adding 200 ms margin
+}
 
-// chrome.tabs API
-tabs.sendMessage = function (tabId, message, options, responseCallback) {
-    var messageId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-    options = options || {};
-
-    if (typeof options === 'function') {
-        responseCallback = options;
-        options = {};
-    }
-
-    if (responseCallback) {
-        eventEmitter.addListener('messageResponse', onResponse);
-    }
-
-    window.webkit.messageHandlers.content.postMessage({
-        tabId: tabId,
-        eventName: 'request',
-        frameId: options.frameId,
-        messageId: messageId,
-        payload: message
-    });
-
-    function onResponse(payload) {
-        if (payload.messageId === messageId) {
-            responseCallback(payload.message);
-            eventEmitter.removeListener('messageResponse', onResponse);
-        }
-    }
-};
-
+// Query related
 let unsupportedQueryWarning = [ 'pinned', 'audible', 'muted', 'highlighted', 'discarded', 'autoDiscardable', 'currentWindow', 'status', 'title', 'windowId', 'windowType', 'index' ]
     .reduce(function (w, opt) {
         w[opt] = function () {
@@ -128,7 +97,6 @@ unsupportedQueryWarning.active = function (opts) {
         delete unsupportedQueryWarning.active;
     }
 };
-
 
 function query(queryInfo, callback) {
     for (var opt in queryInfo) {
@@ -159,93 +127,7 @@ function query(queryInfo, callback) {
     callback(tabs);
 }
 
-// when chrome.tabs.query is called before the background script finishes loading,
-// query would propagate faster than hello and return nothing
-tabs.query = function(queryInfo, callback) {
-    setTimeout(function () {
-        query(queryInfo, callback);
-        tabs.query = query;
-    }, 0);
-};
-
-// this could be implement in SafariExtensionBridge.swift,
-// but SFSafariPage.getContainingTab only exists since 10.14 and Topee targets 10.11
-tabs.update = function(tabId, updateProperties, callback) {
-   if (!updateProperties.url) {
-       console.error('chrome.tabs.update only supports url parameter');
-   }
-   window.webkit.messageHandlers.content.postMessage({
-       eventName: 'tabUpdate',
-       tabId: tabId,
-       frameId: 0,
-       url: updateProperties.url
-   });
-   setTimeout(function () {
-       callback({ id: tabId, url: updateProperties.url });
-   }, 0); 
-};
-
-eventEmitter.addListener('tabs.query', function (message) {
-    tabs.query(message.queryInfo, function (tabs) {
-        if (message.tabId === 'popup') {
-            window.webkit.messageHandlers.popup.postMessage({
-                eventName: 'response',
-                messageId: message.messageId,
-                payload: tabs
-            });
-            return;
-        }
-        
-        window.webkit.messageHandlers.content.postMessage({
-            eventName: 'response',
-            tabId: message.tabId,
-            frameId: message.frameId,
-            messageId: message.messageId,
-            payload: tabs
-        });
-    });
-});
-
-tabs.get = function(id, callback) {
-    callback(browserTabs[id]);
-};
-
-tabs.create = function(createProperties, callback) {
-    window.webkit.messageHandlers.appex.postMessage({
-        type: 'createTab',
-        url: typeof createProperties.url === 'undefined' ? 'favorites://' : createProperties.url,
-        active: typeof createProperties.active === 'undefined' ? true : createProperties.active
-    });
-
-    if (callback) {
-        eventEmitter.addListener('hello', onTabCreated);
-        eventEmitter.addListener('alive', onTabCreated);
-    }
-
-    function onTabCreated({tabId}) {
-        setTimeout(function () {
-            tabs.get(tabId, callback);
-        }, 0);
-
-        eventEmitter.removeListener('alive', onTabCreated);
-        eventEmitter.removeListener('hello', onTabCreated);
-    }
-};
-
-tabs.remove = function(id, callback) {
-    window.webkit.messageHandlers.appex.postMessage({
-        type: 'removeTab',
-        tabId: id
-    });
-    if (callback) {
-        setTimeout(callback, 0);
-    }
-};
-
-tabs.sendMessage._emit = function (payload) {
-    eventEmitter.emit('messageResponse', payload);
-};
-
+// Event listener related
 var listeners = {
     onCreated: [],
     onUpdated: [],
@@ -253,39 +135,138 @@ var listeners = {
     onActivated: []
 };
 
-function addListener(type, callback) {
-    listeners[type].push(callback);
-    eventEmitter.addListener(`tab@${type}`, callback);
+function generateEventHandler(type) {
+    return {
+        type: type,
+        _emit: function() {
+            eventEmitter.emit.apply(eventEmitter, [`tab@${this.type}`].concat(Array.prototype.slice.call(arguments)));
+        },
+        addListener: function(callback) {
+            listeners[type].push(callback);
+            eventEmitter.addListener(`tab@${type}`, callback);
+        },
+        removeListener: function(callback) {
+            listeners[type] = listeners[type].filter(function(item) {
+                if(callback === item) {
+                    eventEmitter.removeListener(`tab@${type}`, callback);
+                    return false;
+                }
+                return true;
+            });
+        },
+        hasListener: function(callback) {
+            return listeners[this.type].includes(callback);
+        },
+    };
 }
 
-function removeListener(type, callback) {
-    listeners[type] = listeners[type].filter(function(item) {
-        if(callback === item) {
-            eventEmitter.removeListener(`tab@${type}`, callback);
-            return false;
+// https://developer.chrome.com/extensions/tabs
+var tabs = {
+    // Methods
+    create: function(createProperties, callback) {
+        window.webkit.messageHandlers.appex.postMessage({
+            type: 'createTab',
+            url: typeof createProperties.url === 'undefined' ? 'favorites://' : createProperties.url,
+            active: typeof createProperties.active === 'undefined' ? true : createProperties.active
+        });
+
+        if (callback) {
+            tabs.onCreated.addListener(onTabCreated);
         }
-        return true;
-    });
-}
 
-tabs.onCreated = {
-    type: 'onCreated',
-    _emit: function() {
-        eventEmitter.emit.apply(eventEmitter, [`tab@${this.type}`].concat(Array.prototype.slice.call(arguments)));
+        function onTabCreated(tabId, changeInfo, tab) {
+            setTimeout(function () {
+                callback(tab || tabId);
+            }, 0);
+
+            tabs.onCreated.removeListener(onTabCreated);
+        }
     },
-    addListener: function(listener) {
-        addListener(this.type, listener);
+
+    get: function(id, callback) {
+        callback(browserTabs[id]);
     },
-    removeListener: function(listener) {
-        removeListener(this.type, listener);
+    
+    // when chrome.tabs.query is called before the background script finishes loading,
+    // query would propagate faster than hello and return nothing
+    query: function(queryInfo, callback) {
+        setTimeout(function () {
+            query(queryInfo, callback);
+            tabs.query = query;
+        }, 0);
     },
-    hasListener: function(listener) {
-        return listeners[this.type].includes(listener);
+    
+    // this could be implement in SafariExtensionBridge.swift,
+    // but SFSafariPage.getContainingTab only exists since 10.14 and Topee targets 10.11
+    update: function(tabId, updateProperties, callback) {
+       if (!updateProperties.url) {
+           console.error('chrome.tabs.update only supports url parameter');
+       }
+       window.webkit.messageHandlers.content.postMessage({
+           eventName: 'tabUpdate',
+           tabId: tabId,
+           frameId: 0,
+           url: updateProperties.url
+       });
+       setTimeout(function () {
+           callback({ id: tabId, url: updateProperties.url });
+       }, 0);
     },
+    
+    remove: function(id, callback) {
+        window.webkit.messageHandlers.appex.postMessage({
+            type: 'removeTab',
+            tabId: id
+        });
+        if (callback) {
+            setTimeout(callback, 0);
+        }
+    },
+    
+    sendMessage: function (tabId, message, options, responseCallback) {
+        var messageId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+        options = options || {};
+
+        if (typeof options === 'function') {
+            responseCallback = options;
+            options = {};
+        }
+
+        function onResponse(...args) {
+            if (this.messageId === messageId) {
+                eventEmitter.removeEventListener('tabs.messageResponse', onResponse);
+                responseCallback.apply(this, args);
+            }
+        }
+        if (responseCallback) {
+            eventEmitter.addEventListener('tabs.messageResponse', onResponse);
+        }
+
+        // Send message to tab
+        window.webkit.messageHandlers.content.postMessage({
+            tabId: tabId,
+            eventName: 'tabs.message',
+            frameId: options.frameId,
+            messageId: messageId,
+            payload: [
+                message,
+            ],
+        });
+    },
+
+    // Events
+    onCreated: generateEventHandler('onCreated'),
+    onUpdated:generateEventHandler('onUpdated'),
+    onRemoved: generateEventHandler('onRemoved'),
+    onActivated: generateEventHandler('onActivated'),
 };
 
-tabs.onUpdated = Object.assign({}, tabs.onCreated, { type: 'onUpdated' });
-tabs.onRemoved = Object.assign({}, tabs.onCreated, { type: 'onRemoved' });
-tabs.onActivated = Object.assign({}, tabs.onCreated, { type: 'onActivated' });
+// Listen to external calls
+eventEmitter.addTopeeListener('tabs.load', registerTab);
+eventEmitter.addTopeeListener('tabs.alive', registerTab);
+eventEmitter.addTopeeListener('tabs.unload', unregisterTab);
+eventEmitter.addTopeeListener('tabs.get', tabs.get);
+eventEmitter.addTopeeListener('tabs.query', tabs.query);
+
 
 module.exports = tabs;

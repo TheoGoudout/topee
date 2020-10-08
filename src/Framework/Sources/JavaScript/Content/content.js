@@ -20,8 +20,8 @@ if (typeof window.chrome === 'object') {
     if (window === window.top) {
         // in case this is injected multiple times (https://bugreport.apple.com/web/?problemID=43086339), the first injects don't received these events
         window.isTabRegistered = true; // Let's be sure that we send bye in this weird multi-inject state
-        window.addEventListener('pagehide', tabInfo.sayBye);
-        window.addEventListener('beforeunload', tabInfo.sayBye);
+        window.addEventListener('pagehide', tabInfo.onTabUnload);
+        window.addEventListener('beforeunload', tabInfo.onTabUnload);
     }
 
     return;
@@ -38,13 +38,11 @@ var iframesParent = require('./iframes.js');
 iframesParent.install();
 
 if (window === window.top) {
-    tabInfo.sayHello();
+    tabInfo.onTabLoad();
 
-    window.addEventListener('pageshow', function() {
-        // When user navigates back Safari ressurects page so we need to trigger hello also in
-        // this case (because was dereferenced using beforeunload)
-        tabInfo.sayHello();
-    });
+    // When user navigates back Safari ressurects page so we need to trigger hello also in
+    // this case (because was dereferenced using beforeunload)
+    window.addEventListener('pageshow', tabInfo.onTabLoad);
 }
 
 var lastUrl = window.location.href;
@@ -68,12 +66,12 @@ if (window === window.top) {
 
     var unloadHelloTimer = undefined;
     window.addEventListener('beforeunload', () => {
-        tabInfo.sayBye();
-        unloadHelloTimer = setTimeout(() => tabInfo.sayHello(), 500);
+        tabInfo.onTabUnload();
+        unloadHelloTimer = setTimeout(() => tabInfo.onTabLoad(), 500);
     });
     window.addEventListener('pagehide', () => {
         clearTimeout(unloadHelloTimer);
-        tabInfo.sayBye();
+        tabInfo.onTabUnload();
     });
 
     var documentComplete = false;
@@ -84,23 +82,15 @@ if (window === window.top) {
     });
 
     tabInfo.tabId.then(() => {
-        setInterval(() => tabInfo.sayAlive(), 5000);
+        setInterval(tabInfo.onTabAlive, 5000);
 
         if (documentComplete) {
-            tabInfo.sayAlive();
+            tabInfo.onTabAlive();
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
-            tabInfo.sayAlive();
-        });
-
-        window.addEventListener("load", function () {
-            tabInfo.sayAlive();
-        });
-
-        document.addEventListener("visibilitychange", function () {
-            tabInfo.sayAlive();
-        });
+        document.addEventListener("DOMContentLoaded", tabInfo.onTabAlive);
+        window.addEventListener("load", tabInfo.onTabAlive);
+        document.addEventListener("visibilitychange", tabInfo.onTabAlive);
     });
 
     // history API has no change notification, so we have to use polling
@@ -132,7 +122,7 @@ function once(obj, event, callback) {
 function visibilityHello() {
     if (document.visibilityState !== 'prerender' && window.location.href !== lastUrl) {
         lastUrl = window.location.href;
-        tabInfo.sayHello();
+        tabInfo.onTabLoad();
     }
 }
 

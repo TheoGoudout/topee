@@ -1,6 +1,8 @@
 // create / get tab id
 'use strict';
 
+var eventEmitter = require('./event-bus.js');
+
 var tabInfo = {
     Event: {
         GET_TAB_ID: 'topee.tabInfo.getTabId',
@@ -8,9 +10,9 @@ var tabInfo = {
     },
 
     init: init,
-    sayHello: sayHello,
-    sayAlive: sayAlive,
-    sayBye: sayBye,
+    onTabLoad: onTabLoad,
+    onTabAlive: onTabAlive,
+    onTabUnload: onTabUnload,
     isForThisFrame: isForThisFrame
 };
 
@@ -50,10 +52,10 @@ function init() {
             }
         });
 
-        safari.self.addEventListener("message", function (event) {
-            if (event.name === 'tabUpdate' && event.message && event.message.url) {
-                var url = event.message.url;
-                if (event.message.url.startsWith(BACKGROUND_GETURL)) {
+        eventEmitter.on('tabUpdate', function (message) {
+            if (message && message.url) {
+                var url = message.url;
+                if (message.url.startsWith(BACKGROUND_GETURL)) {
                     url = chrome.runtime.getURL(url.substr(BACKGROUND_GETURL.length));
                 }
                 window.location = url;
@@ -68,34 +70,34 @@ function init() {
 
     if (window === window.top) {
         // should arrive as a response to sayHello
-        safari.self.addEventListener("message", function (event) {
-            if (event.name === 'forceTabId' && event.message && typeof event.message.tabId === 'number') {
-                if (event.message.locale) {
+        eventEmitter.on('forceTabId', function (message) {
+            if (message && typeof message.tabId === 'number') {
+                if (message.locale) {
                     try {
-                        chrome.i18n._locale = JSON.parse(event.message.locale);
-                        sessionStorage.setItem('topee_locale', event.message.locale);
+                        chrome.i18n._locale = JSON.parse(message.locale);
+                        sessionStorage.setItem('topee_locale', message.locale);
                     }
                     catch (ex) {
                         console.error('Cannot parse locale:', ex);
                     }
                 }
 
-                if (event.message.manifest_version) {
-                    chrome.runtime._manifest.version = event.message.manifest_version;
-                    sessionStorage.setItem('topee_manifest_version', event.message.manifest_version);
+                if (message.manifest_version) {
+                    chrome.runtime._manifest.version = message.manifest_version;
+                    sessionStorage.setItem('topee_manifest_version', message.manifest_version);
                 }
-                if (event.message.manifest_name) {
-                    chrome.runtime._manifest.name= event.message.manifest_name;
-                    sessionStorage.setItem('topee_manifest_name', event.message.manifest_name);
+                if (message.manifest_name) {
+                    chrome.runtime._manifest.name = message.manifest_name;
+                    sessionStorage.setItem('topee_manifest_name', message.manifest_name);
                 }
 
-                storedTabId = event.message.tabId;
+                storedTabId = message.tabId;
                 sessionStorage.setItem('topee_tabId', storedTabId);
 
-                publishDebug(event.message.debug);
-                storeDebug(event.message.debug);
+                publishDebug(message.debug);
+                storeDebug(message.debug);
 
-                setTabId(event.message.tabId);
+                setTabId(message.tabId);
             }
         });
         return;
@@ -143,7 +145,7 @@ function init() {
 // events).
 window.isTabRegistered = false;
 
-function sayHello() {
+function onTabLoad() {
     var tabId = isNaN(storedTabId) ? null : storedTabId;
     if (tabId === null) {
         if (helloWithNullTabIdSent)
@@ -156,7 +158,7 @@ function sayHello() {
     }
 
     tabInfo.tabId.then(
-        assignedTabId => window.topee_log && console.debug(`topee.hello(tabId: ${tabId}, referrer: "${document.referrer}", historyLength: ${history.length}) @ ${window.location.href} -> ${assignedTabId}`));
+        assignedTabId => window.topee_log && console.debug(`tabs.load(tabId: ${tabId}, referrer: "${document.referrer}", historyLength: ${history.length}) @ ${window.location.href} -> ${assignedTabId}`));
 
     safari.extension.dispatchMessage('hello', {
         // Info processed by Swift layer only
@@ -167,7 +169,7 @@ function sayHello() {
         // Payload is passed to background page (and processed by tabs.js for example)
         payload: Object.assign(
             {
-                eventName: 'hello',
+                eventName: 'tabs.load',
                 tabId: tabId
             },
             getTabState()
@@ -177,14 +179,14 @@ function sayHello() {
     window.isTabRegistered = true;
 }
 
-function sayAlive() {
+function onTabAlive() {
     safari.extension.dispatchMessage('alive', {
         // Info processed by Swift layer only
         tabId: storedTabId,
         // Payload is passed to background page (and processed by tabs.js for example)
         payload: Object.assign(
             {
-                eventName: 'alive',
+                eventName: 'tabs.alive',
                 tabId: storedTabId
             },
             getTabState()
@@ -202,14 +204,14 @@ function getTabState () {
     };
 }
 
-function sayBye(event) {
+function onTabUnload(event) {
     var tabId = isNaN(storedTabId) ? null : storedTabId;
 
     if (!window.isTabRegistered) {
         return;
     }
 
-    window.topee_log && console.debug(`topee.bye(tabId: ${tabId}, url: ${window.location.href})`);
+    window.topee_log && console.debug(`tabs.unload(tabId: ${tabId}, url: ${window.location.href})`);
 
     safari.extension.dispatchMessage('bye', {
         tabId: tabId,
@@ -217,7 +219,7 @@ function sayBye(event) {
         historyLength: history.length,
         payload: {
             tabId: tabId,
-            eventName: 'bye',
+            eventName: 'tabs.unload',
             reason: event ? event.type : 'unknown',
             url: window.location.href
         }

@@ -52,6 +52,27 @@
 		80BEB8A92111B68600DA4C7B /* topee-background.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; name = "topee-background.js"; path = "Build/topee-background.js"; sourceTree = SOURCE_ROOT; };
 		A8BDBC5E24F1667B0074A848 /* topee-popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "topee-popup.js"; path = "Build/topee-popup.js"; sourceTree = "<group>"; };
 		A8FC5DD624D4541600E42776 /* PopupViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PopupViewController.swift; sourceTree = "<group>"; };
+		E416C159252CD43C0040E6BE /* storage.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = storage.js; sourceTree = "<group>"; };
+		E416C15A252CD43D0040E6BE /* web-request.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "web-request.js"; sourceTree = "<group>"; };
+		E416C15B252CD43D0040E6BE /* windows.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = windows.js; sourceTree = "<group>"; };
+		E416C15C252CD43D0040E6BE /* commands.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = commands.js; sourceTree = "<group>"; };
+		E416C15D252CD43D0040E6BE /* web-navigation.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "web-navigation.js"; sourceTree = "<group>"; };
+		E416C164252CD4870040E6BE /* storage.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = storage.js; sourceTree = "<group>"; };
+		E416C167252CD4E50040E6BE /* popup.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = popup.js; sourceTree = "<group>"; };
+		E416C16A252CD50D0040E6BE /* runtime.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = runtime.js; sourceTree = "<group>"; };
+		E416C16B252CD50D0040E6BE /* index.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = index.js; sourceTree = "<group>"; };
+		E416C16C252CD50D0040E6BE /* storage.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = storage.js; sourceTree = "<group>"; };
+		E416C16D252CD50E0040E6BE /* extension.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = extension.js; sourceTree = "<group>"; };
+		E416C16E252CD50E0040E6BE /* tabs.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = tabs.js; sourceTree = "<group>"; };
+		E416C16F252CD50E0040E6BE /* windows.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = windows.js; sourceTree = "<group>"; };
+		E416C176252CD54C0040E6BE /* background-bridge.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "background-bridge.js"; sourceTree = "<group>"; };
+		E416C178252CD5520040E6BE /* iframes.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = iframes.js; sourceTree = "<group>"; };
+		E416C17B252CD6130040E6BE /* aes-crypto.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "aes-crypto.js"; sourceTree = "<group>"; };
+		E416C17C252CD6130040E6BE /* i18n-getmessage.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "i18n-getmessage.js"; sourceTree = "<group>"; };
+		E416C17D252CD6130040E6BE /* binary-conversion.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "binary-conversion.js"; sourceTree = "<group>"; };
+		E416C181252CD61A0040E6BE /* text-crypto.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "text-crypto.js"; sourceTree = "<group>"; };
+		E416C184252CD8520040E6BE /* index.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = index.js; sourceTree = "<group>"; };
+		E4D71692252DF8D200A7D6B7 /* event-bus.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "event-bus.js"; sourceTree = "<group>"; };
 		EF1A65C821186D390021E013 /* url-matcher.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "url-matcher.js"; sourceTree = "<group>"; };
 		EF1FACD0211467FD005876A2 /* runtime.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = runtime.js; sourceTree = "<group>"; };
 		EF1FACD1211467FD005876A2 /* tabs.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = tabs.js; sourceTree = "<group>"; };
@@ -140,9 +161,56 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		E416C166252CD4C80040E6BE /* Popup */ = {
+			isa = PBXGroup;
+			children = (
+				E416C169252CD4F30040E6BE /* chrome */,
+				E416C167252CD4E50040E6BE /* popup.js */,
+			);
+			path = Popup;
+			sourceTree = "<group>";
+		};
+		E416C169252CD4F30040E6BE /* chrome */ = {
+			isa = PBXGroup;
+			children = (
+				E416C16D252CD50E0040E6BE /* extension.js */,
+				E416C16B252CD50D0040E6BE /* index.js */,
+				E416C16A252CD50D0040E6BE /* runtime.js */,
+				E416C16C252CD50D0040E6BE /* storage.js */,
+				E416C16E252CD50E0040E6BE /* tabs.js */,
+				E416C16F252CD50E0040E6BE /* windows.js */,
+			);
+			path = chrome;
+			sourceTree = "<group>";
+		};
+		E416C17A252CD5F90040E6BE /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				E416C183252CD6310040E6BE /* polyfills */,
+				E416C181252CD61A0040E6BE /* text-crypto.js */,
+				E416C17B252CD6130040E6BE /* aes-crypto.js */,
+				E416C17D252CD6130040E6BE /* binary-conversion.js */,
+				E416C17C252CD6130040E6BE /* i18n-getmessage.js */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		E416C183252CD6310040E6BE /* polyfills */ = {
+			isa = PBXGroup;
+			children = (
+				E416C184252CD8520040E6BE /* index.js */,
+			);
+			path = polyfills;
+			sourceTree = "<group>";
+		};
 		EF1FACCF211467FD005876A2 /* chrome */ = {
 			isa = PBXGroup;
 			children = (
+				E416C15C252CD43D0040E6BE /* commands.js */,
+				E416C159252CD43C0040E6BE /* storage.js */,
+				E416C15D252CD43D0040E6BE /* web-navigation.js */,
+				E416C15A252CD43D0040E6BE /* web-request.js */,
+				E416C15B252CD43D0040E6BE /* windows.js */,
 				FD3468FB21465A2400A86D27 /* browser-action.js */,
 				FD3468FC21465A2400A86D27 /* context-menus.js */,
 				FD3468FD21465A2400A86D27 /* extension.js */,
@@ -273,6 +341,7 @@
 		EFF799C82110B0A100646663 /* chrome */ = {
 			isa = PBXGroup;
 			children = (
+				E416C164252CD4870040E6BE /* storage.js */,
 				FD34690521465A4500A86D27 /* extension.js */,
 				FD34690321465A4500A86D27 /* i18n.js */,
 				FD34690421465A4500A86D27 /* tabs.js */,
@@ -302,6 +371,8 @@
 		FD66CF7F211052B5003E0819 /* JavaScript */ = {
 			isa = PBXGroup;
 			children = (
+				E416C17A252CD5F90040E6BE /* Common */,
+				E416C166252CD4C80040E6BE /* Popup */,
 				FD80BAF5211DA1B000CCFB1E /* IframeResources */,
 				80BEB8A32111B3E600DA4C7B /* Background */,
 				FD66CF83211053D5003E0819 /* Content */,
@@ -312,6 +383,9 @@
 		FD66CF83211053D5003E0819 /* Content */ = {
 			isa = PBXGroup;
 			children = (
+				E4D71692252DF8D200A7D6B7 /* event-bus.js */,
+				E416C178252CD5520040E6BE /* iframes.js */,
+				E416C176252CD54C0040E6BE /* background-bridge.js */,
 				80BEB8A62111B58900DA4C7B /* content.js */,
 				EFF799CD2110B0A600646663 /* tabInfo.js */,
 				EFF799C82110B0A100646663 /* chrome */,
@@ -391,7 +465,7 @@
 				TargetAttributes = {
 					EF80A75A210F2B67002C6F3F = {
 						CreatedOnToolsVersion = 9.4.1;
-						LastSwiftMigration = 1000;
+						LastSwiftMigration = 1160;
 					};
 					EF80A763210F2B68002C6F3F = {
 						CreatedOnToolsVersion = 9.4.1;
@@ -517,9 +591,18 @@
 			baseConfigurationReference = EF80A77B210F2C37002C6F3F /* Debug.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4JU7TJ7JXU;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -528,9 +611,17 @@
 			baseConfigurationReference = EF80A77C210F2C37002C6F3F /* Release.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4JU7TJ7JXU;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

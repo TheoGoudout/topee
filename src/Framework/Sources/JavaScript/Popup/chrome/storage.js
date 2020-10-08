@@ -1,4 +1,3 @@
-
 'use strict';
 
 const EventEmitter = require('events');
@@ -16,10 +15,10 @@ function storage(storageArea) {
                 0,
                 {
                     eventName: 'storage.get',
-                    message: {
-                        area: storageArea,
-                        keys: cb ? keys : undefined
-                    }
+                    message: [
+                        storageArea,
+                        keys,
+                    ],
                 },
                 (resp) => callback(resp)
             );
@@ -29,10 +28,10 @@ function storage(storageArea) {
                 0,
                 {
                     eventName: 'storage.set',
-                    message: {
-                        area: storageArea,
+                    message: [
+                        storageArea,
                         items
-                    }
+                    ],
                 },
                 () => callback()
             );
@@ -42,10 +41,10 @@ function storage(storageArea) {
                 0,
                 {
                     eventName: 'storage.remove',
-                    message: {
-                        area: storageArea,
-                        keys
-                    }
+                    message: [
+                        storageArea,
+                        keys,
+                    ],
                 },
                 () => callback()
             );
@@ -55,9 +54,9 @@ function storage(storageArea) {
                 0,
                 {
                     eventName: 'storage.clear',
-                    message: {
-                        area: storageArea,
-                    }
+                    message: [
+                        storageArea,
+                    ],
                 },
                 () => callback()
             );
@@ -65,9 +64,8 @@ function storage(storageArea) {
     };
 }
 
-var runtimeListenerAdded = false;
-
-module.exports = {
+// https://developer.chrome.com/extensions/storage
+var storage = {
     local: storage('local'),
     sync: storage('sync'),
     managed: {
@@ -75,18 +73,9 @@ module.exports = {
     },
     onChanged: {
         addListener(callback) {
-            if (!runtimeListenerAdded) {
-                chrome.runtime.onMessage.addListener(function (message) {
-                    if (message.type === '__topee_storage') {
-                        changeEmitter.emit('storage', message.changes, message.area);
-                    }
-                });
-                runtimeListenerAdded = true;
-            }
             changeEmitter.on('storage', callback);
         },
-        removeListener(callback) {
-            changeEmitter.off('storage', callback);
-        }
     }
 };
+
+module.exports = storage;

@@ -1,10 +1,8 @@
 'use strict';
 
-const tabs = require('./tabs.js');
-const EventEmitter = require('events');
-const changeEmitter = new EventEmitter();
+const eventEmitter = require('../event-bus.js');
 
-function storage(storageArea) {
+function generateStorage(storageArea) {
     const STORAGE_KEY_PREFIX = '__topee_internal.' + storageArea + '.';
     function keyName(key) {
         return STORAGE_KEY_PREFIX + key;
@@ -20,31 +18,12 @@ function storage(storageArea) {
             });
     }
 
-    /**
-     * @param {string|string[]} keys
-     * @param {function} [callbackFunc]
-     */
-    function remove (keys, callbackFunc) {
-        let keysToRemove;
-        if (typeof keys === 'string') {
-            keysToRemove = [keys];
-        } else if (Array.isArray(keys)) {
-            keysToRemove = keys;
-        } else {
-            throw new Error('Invalid "keys" argument type');
-        }
-        for (const key of keysToRemove) {
-            localStorage.removeItem(keyName(key));
-        }
-        callbackFunc && callbackFunc();
-    }
-
     return {
         /**
          * @param keys (optional)
          * @param cb function
          */
-        get (keys, cb) {
+        get: function (keys, cb) {
             const callbackFunc = cb || keys;
             let keysToFetch = [];
             let defaults = {};
@@ -68,7 +47,11 @@ function storage(storageArea) {
             }
             callbackFunc(result);
         },
-        set(items, callbackFunc) {
+        /**
+         * @param {object} items
+         * @param {function} [callbackFunc]
+         */
+        set: function (items, callbackFunc) {
             const changes = {};
             for (const key of Object.keys(items)) {
                 const oldValue = localStorage.getItem(key);
@@ -77,54 +60,74 @@ function storage(storageArea) {
                 changes[key] = { oldValue, newValue };
             }
 
-            changeEmitter.emit('storage', changes, storageArea);
-            tabs.query({}, function(tabs) {
-                window.webkit.messageHandlers.popup.postMessage({
-                    eventName: 'request',
-                    payload: {
-                        type: '__topee_storage',
-                        changes: changes,
-                        area: storageArea
-                    }
-                });
-
-                tabs.forEach(function (tab) {
-                    window.webkit.messageHandlers.content.postMessage({
-                        tabId: tab.id,
-                        eventName: 'request',
-                        payload: {
-                            type: '__topee_storage',
-                            changes: changes,
-                            area: storageArea
-                        }
-                    });
-                });
-            });
+            eventEmitter.emit('storage.changed', changes, storageArea);
             callbackFunc && callbackFunc();
         },
-        remove,
+        /**
+         * @param {string|string[]} keys
+         * @param {function} [callbackFunc]
+         */
+        remove: function (keys, callbackFunc) {
+            let keysToRemove;
+            if (typeof keys === 'string') {
+                keysToRemove = [keys];
+            } else if (Array.isArray(keys)) {
+                keysToRemove = keys;
+            } else {
+                throw new Error('Invalid "keys" argument type');
+            }
+            for (const key of keysToRemove) {
+                localStorage.removeItem(keyName(key));
+            }
+            callbackFunc && callbackFunc();
+        },
         /**
          * @param {function} callbackFunc
          */
-        clear (callbackFunc) {
-            remove(getAllKeys(), callbackFunc);
+        clear: function (callbackFunc) {
+            this.remove(getAllKeys(), callbackFunc);
         },
     };
 }
 
-
-module.exports = {
-    local: storage('local'),
-    sync: storage('sync'),
+// https://developer.chrome.com/extensions/storage
+var storage = {
+    // Properties
+    local: generateStorage('local'),
+    sync: generateStorage('sync'),
     managed: {
-        get: storage('managed').get
+        get: generateStorage('managed').get
     },
+
+    // Events
     onChanged: {
         addListener(callback) {
-            changeEmitter.on('storage', callback);
+            eventEmitter.on('storage.changed', callback);
         },
-        removeListener(callback) {
-            changeEmitter.off('storage', callback);
-        }
     }
 };
+
+// Listen to external calls
+function addTopeeAreaListener(eventName, eventHandler) {
+    eventEmitter.addTopeeListener(eventName, function(area, ...args) {
+        storage[area][eventHandler].apply(this, args);
+    });
+}
+addTopeeAreaListener('storage.get', 'get');
+addTopeeAreaListener('storage.set', 'set');
+addTopeeAreaListener('storage.remove', 'remove');
+addTopeeAreaListener('storage.clear', 'clear');
+
+eventEmitter.addEventListener('storage.onChanged', function(payload) {
+    storage.onChanged.addListener(function (...args) {
+        window.webkit.messageHandlers.content.postMessage({
+            tabId: payload.tabId,
+            eventName: 'storage.changed',
+            listenerId: payload.listenerId,
+            payload: args,
+        });
+    });
+});
+
+
+module.exports = storage;

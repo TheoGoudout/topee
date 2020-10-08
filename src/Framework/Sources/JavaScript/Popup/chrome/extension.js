@@ -7,8 +7,8 @@ var extension = {
         return chrome.runtime.getURL(path);
     },
 
+    // TODO: Implementation
     getViews: function (/* fetchProperties */) {
-        // TODO: Implementation
         return [];
     },
 };

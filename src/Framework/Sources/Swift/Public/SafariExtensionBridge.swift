@@ -95,9 +95,10 @@ public class SafariExtensionBridge: NSObject, SafariExtensionBridgeType, WKScrip
             let backgroundURL = Bundle(for: SafariExtensionBridge.self)
                 .url(forResource: "topee-background", withExtension: "js")!
             let bgLocale = "(function () { chrome.i18n._locale=" + readLocales() + "; })();"
+            let bgOptions = "(function () { chrome.runtime._optionsPage='" + (optionsPageURL() ?? "") + "'; })();"
 
             let scripts = [readFile(backgroundURL), buildManifestScript()]
-                + [bgLocale]
+                + [bgLocale, bgOptions]
                 + readFiles(backgroundScriptURLs())
                 + [readFile(backgroundEndURL)]
             let script = WKUserScript(scripts: scripts)
@@ -476,7 +477,7 @@ public class SafariExtensionBridge: NSObject, SafariExtensionBridgeType, WKScrip
 
         return pathSpec[sizes.first!] as? String // if 16, 19 and 32 px are missing, take anything else
     }
-
+    
     private func backgroundScriptURLs() -> [URL] {
         let dict = Bundle.main.infoDictionary!
         guard let extensionDictionary = dict["NSExtension"] as? [String: Any] else {
@@ -494,6 +495,23 @@ public class SafariExtensionBridge: NSObject, SafariExtensionBridgeType, WKScrip
             return url
         }
         return scriptURLs
+    }
+    
+    private func optionsPageURL() -> String? {
+        let dict = Bundle.main.infoDictionary!
+        guard let extensionDictionary = dict["NSExtension"] as? [String: Any] else {
+            logger.error("'NSExtension' entry not found in plist")
+            return nil
+        }
+        guard let optionsPage = extensionDictionary["TopeeSafariOptionsPage"] as? [String: String] else {
+            logger.info("'TopeeSafariOptionsPage' entry not found in plist")
+            return nil
+        }
+        guard let optionsPagePath = optionsPage["Path"] else {
+            logger.info("'Path' entry not found in plist")
+            return nil
+        }
+        return optionsPagePath
     }
 
     private func buildManifestScript() -> String {

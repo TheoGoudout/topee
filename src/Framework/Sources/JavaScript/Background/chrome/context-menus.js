@@ -1,8 +1,11 @@
+'use strict';
+
 // https://developer.chrome.com/extensions/contextMenus
-
-var contextMenus = {};
-
-// TODO: Implementation
-contextMenus.removeAll = function () {};
+var contextMenus = {
+    // Methods
+    removeAll: function () {
+        // TODO: Implementation
+    },
+};
 
 module.exports = contextMenus;
